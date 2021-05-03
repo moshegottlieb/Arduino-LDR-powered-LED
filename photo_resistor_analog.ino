@@ -15,7 +15,7 @@ const int LIGHT_THRESHOLD = 170;
 /**
  * Minimal low light value, valid range should be 0..255, where 0 means turn off the led, and 255 means keep it fully lit
  */
-const int LED_LOW_LIGHT=4;
+const int LED_LOW_LIGHT=0;
 
 /**
  * @class Pin
