@@ -1,16 +1,17 @@
 /**
- * D11 is a PWM pin in the Nano, Uno and Mega 2560, so same code works for all three boards
+ * D3,D5 are PWM pins in the Nano, Uno and Mega 2560, so same code works for all three boards
  * Feel free to change for your board
 */
-const int LED_PIN = 11;
-/**
+const int LED_PINS[] = { 3,5 };
+const size_t LED_COUNT = sizeof(LED_PINS) / sizeof(int);
+/*
  * We'll read the input from this pin
  */
 const int LDR_PIN = A0;
 /**
  * Experiment for the best value for you, the value range is 0..1023 (10bit unsigned), where 0 is total darkness. 
  */
-const int LIGHT_THRESHOLD = 450;
+const int LIGHT_THRESHOLD = 170;
 /**
  * Minimal low light value, valid range should be 0..255, where 0 means turn off the led, and 255 means keep it fully lit
  */
@@ -73,15 +74,18 @@ public:
  */
 class LED : OutputPin {
 public:
-  LED(int pin):
+  LED(int pin,bool reverse):
     OutputPin(pin),
     _isOff(true),
-    _level(0){}
+    _level(0),
+    _isReverse(reverse){}
   /**
    * Step the light to the next level, uses the time based `stepValue()` method
    */ 
   void step(){
     int level = LED::stepValue();
+    // Reverse the value? good for charlieplexing
+    if (_isReverse) level = 255 - level;
     /**
      * I've no idea what is the cost of `analogWrite` (performance wise), but I know I only want to call it when I need to, hence the `_isOff` and `_level` check 
      */
@@ -132,6 +136,7 @@ public:
     }
     bool _isOff;
     int _level;
+    bool _isReverse;
 };
 
 /**
@@ -148,7 +153,10 @@ class LDR : InputPin{
    * @see LIGHT_THRESHOLD
    */
   bool isBright() const {
-    return analogRead() > LIGHT_THRESHOLD;
+    Serial.print("LDR ");
+    int value = analogRead();
+    Serial.println(value);
+    return value > LIGHT_THRESHOLD;
   }
 };
 
@@ -173,9 +181,18 @@ void loop(){
     NO,
     UNINITIALIZED
   };
-  WasBright was_bright = UNINITIALIZED;
-  LED led(LED_PIN);
   LDR ldr(LDR_PIN);
+  LED** leds = reinterpret_cast<LED**>(malloc(sizeof(LED*)*LED_COUNT+1));
+  LED** iled;
+  WasBright was_bright = UNINITIALIZED;
+  { // scope for temp vars
+    int i=0;
+    bool reverse = false;
+    for (auto pin : LED_PINS){
+      leds[i++] = new LED(pin,reverse^=true);
+    }
+    leds[i] = nullptr;
+  }
   while (true){
     // Is it bright outside?
     if (ldr.isBright()){
@@ -185,7 +202,7 @@ void loop(){
         Serial.println("Bright! turning lights off");
       }
       // Turn it off, there's light outside
-      led.off();
+      iled = leds; while (*iled) (*iled++)->off();
     } else { // Dark!
       // Only print this when actually switching state
       if (was_bright == YES){
@@ -193,7 +210,7 @@ void loop(){
         Serial.println("Bright! turning lights on");
       }
       // Cycle the LED to the next value
-      led.step();
+      iled = leds; while (*iled) (*iled++)->step();
     }
   }
   
