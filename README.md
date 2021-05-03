@@ -8,3 +8,5 @@ Here's a photo showing my poor engineering skills and total inability to solder,
 
 Here's the diagram:
 ![Diagram](https://github.com/moshegottlieb/Arduino-LDR-powered-LED/blob/main/Layout.jpg?raw=true)
+
+Here's the [circuit on tinkercad](https://www.tinkercad.com/things/65nJcP1Ohng)
