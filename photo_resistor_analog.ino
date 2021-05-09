@@ -1,3 +1,7 @@
+#include "pin.h"
+#include "led.h"
+#include "ldr.h"
+#include "push_button.h"
 /**
  * D3,D5 are PWM pins in the Nano, Uno and Mega 2560, so same code works for all three boards
  * Feel free to change for your board
@@ -10,162 +14,6 @@ const size_t LED_COUNT = sizeof(LED_PINS) / sizeof(int);
  */
 const int LDR_PIN = A0;
 const int POT_PIN = A1;
-/**
- * Experiment for the best value for you, the value range is 0..1023 (10bit unsigned), where 0 is total darkness. 
- */
-const int LIGHT_THRESHOLD = 400;
-/**
- * Minimal low light value, valid range should be 0..255, where 0 means turn off the led, and 255 means keep it fully lit
- */
-const int LED_LOW_LIGHT=0;
-
-/**
- * @class Pin
- * Basic pin, encapsulates a pin number
- */
-class Pin {
-public:
-  Pin(int pin):_pin(pin){}
-protected:
-  int _pin;
-};
-
-/**
- * @class InputPin
- * A pin that allows reading input values
- */
-class InputPin : Pin {
-public:
-  InputPin(int pin):Pin(pin){
-    pinMode(_pin,INPUT);
-  }
-  /**
-   * @return The pin analog value (unsigned 10 bits by default, meaning 0..1023)
-   */
-  int analogRead() const{
-    return ::analogRead(_pin);
-  }
-  bool digitalRead() const{
-    return ::digitalRead(_pin) == HIGH;
-  }
-};
-
-/**
- * @class OutputPin
- * A pin that allows writing values
- */
-class OutputPin : Pin {
-public:
-  OutputPin(int pin):Pin(pin){
-    pinMode(_pin,OUTPUT);
-  }
-  /**
-   * @param level By default, this value is an unsigned 8 bit value
-   */ 
-  void analogWrite(int level) const{
-    ::analogWrite(_pin,level);
-  }
-  /**
-   * @param on A simple wrapper to `digitalWrite`, translates `true` to `HIGH` and `false` to `LOW`
-   */
-  void digitalWrite(bool on) const{
-    ::digitalWrite(_pin,on ? HIGH : LOW);
-  }
-};
-
-/**
- * @class LED
- * Our LED pin, controls the light level using `step()` and `off()`
- */
-class LED : OutputPin {
-public:
-  LED(int pin,bool reverse):
-    OutputPin(pin),
-    _isOff(true),
-    _level(0),
-    _isReverse(reverse){}
-  /**
-   * Step the light to the next level, uses the time based `stepValue()` method
-   */ 
-  void step(){
-    int level = LED::stepValue();
-    // Reverse the value? good for charlieplexing
-    if (_isReverse) level = 255 - level;
-    /**
-     * I've no idea what is the cost of `analogWrite` (performance wise), but I know I only want to call it when I need to, hence the `_isOff` and `_level` check 
-     */
-    if (_isOff || level != _level){
-      _level = level;
-      _isOff = false;
-      analogWrite(_level);
-    }
-  }
-  /**
-   * Turns off the led
-   */
-  void off(){
-    if (!_isOff){
-      _isOff = true;
-      digitalWrite(false);
-    }
-  }
-  
-  private:
-    /**
-     * A simple 4 second time based cycle, feel free to replace with your own effect
-     * 0 -> scale up from LED_LOW_LIGHT-255
-     * 1 -> sleep keep value
-     * 2 -> scale down to LED_LOW_LIGHT
-     * 3 -> sleep for 1 sec
-    */
-    static int stepValue(){
-      unsigned long now = millis();
-      int level;
-      // Split the resolution to seconds (/1000) and then, mod by 4, so we get nice 4 second intervals, in a predictable, time based manner (look mom! no state!)
-      switch ((now / 1000) % 4){
-        case 0:
-          level = (int)(((float)(now % 1000)) / 1000.0 * (255-LED_LOW_LIGHT)) + LED_LOW_LIGHT;
-          break;
-        case 1:
-          level = 255;
-          break;
-        case 2:
-          level = 255 - (int)(((float)(now % 1000)) / 1000.0 * (255-LED_LOW_LIGHT));
-          break;
-        case 3:
-        default: // this (`default:`) only supresses the warning about the uninitialized variable, which is bogus, of course.
-          level = LED_LOW_LIGHT;
-          break;
-      }
-      return level;
-    }
-    bool _isOff;
-    int _level;
-    bool _isReverse;
-};
-
-/**
- * @class LDR
- * Our LDR (light dependent resistor) class
- * Used to determine the light level outside
- */
-class LDR : InputPin{
- public:
-  LDR(int pin,int pot):
-  InputPin(pin),_pot(pot){}
-  /**
-   * @return True if bright, false if dark.
-   * @see LIGHT_THRESHOLD
-   */
-  bool isBright() const {
-    //Serial.print("LDR ");
-    int value = analogRead();
-    //Serial.println(value);
-    return value > _pot.analogRead();
-  }
-private:
-  InputPin _pot;
-};
 
 /**
  * Initialize, no idea why arduino calls `setup()` and `loop()` and not just a single entry point
@@ -189,7 +37,7 @@ void loop(){
     UNINITIALIZED
   };
   LDR ldr(LDR_PIN,POT_PIN);
-  InputPin button(BUTTON_PIN);
+  PushButton button(BUTTON_PIN);
   LED** leds = reinterpret_cast<LED**>(malloc(sizeof(LED*)*LED_COUNT+1));
   LED** iled;
   WasBright was_bright = UNINITIALIZED;
@@ -201,15 +49,13 @@ void loop(){
     }
     leds[i] = nullptr;
   }
-
+  button.buttonStateChanged = [](bool state){
+    Serial.print("State changed to ");
+    Serial.println(state ? "on" : "off");
+  };
   int button_state = -1;
   while (true){
-    bool state = button.digitalRead();
-    if (state != button_state){
-      button_state = state;
-      Serial.print("State changed to ");
-      Serial.println(state ? "on" : "off");
-    }
+    button.step();
     // Is it bright outside?
     if (ldr.isBright()){
       // Only print this when actually switching state
