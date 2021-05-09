@@ -3,15 +3,17 @@
  * Feel free to change for your board
 */
 const int LED_PINS[] = { 3,5 };
+const int BUTTON_PIN = 6;
 const size_t LED_COUNT = sizeof(LED_PINS) / sizeof(int);
 /*
  * We'll read the input from this pin
  */
 const int LDR_PIN = A0;
+const int POT_PIN = A1;
 /**
  * Experiment for the best value for you, the value range is 0..1023 (10bit unsigned), where 0 is total darkness. 
  */
-const int LIGHT_THRESHOLD = 170;
+const int LIGHT_THRESHOLD = 400;
 /**
  * Minimal low light value, valid range should be 0..255, where 0 means turn off the led, and 255 means keep it fully lit
  */
@@ -42,6 +44,9 @@ public:
    */
   int analogRead() const{
     return ::analogRead(_pin);
+  }
+  bool digitalRead() const{
+    return ::digitalRead(_pin) == HIGH;
   }
 };
 
@@ -146,18 +151,20 @@ public:
  */
 class LDR : InputPin{
  public:
-  LDR(int pin):
-  InputPin(pin){}
+  LDR(int pin,int pot):
+  InputPin(pin),_pot(pot){}
   /**
    * @return True if bright, false if dark.
    * @see LIGHT_THRESHOLD
    */
   bool isBright() const {
-    Serial.print("LDR ");
+    //Serial.print("LDR ");
     int value = analogRead();
-    Serial.println(value);
-    return value > LIGHT_THRESHOLD;
+    //Serial.println(value);
+    return value > _pot.analogRead();
   }
+private:
+  InputPin _pot;
 };
 
 /**
@@ -181,7 +188,8 @@ void loop(){
     NO,
     UNINITIALIZED
   };
-  LDR ldr(LDR_PIN);
+  LDR ldr(LDR_PIN,POT_PIN);
+  InputPin button(BUTTON_PIN);
   LED** leds = reinterpret_cast<LED**>(malloc(sizeof(LED*)*LED_COUNT+1));
   LED** iled;
   WasBright was_bright = UNINITIALIZED;
@@ -193,7 +201,15 @@ void loop(){
     }
     leds[i] = nullptr;
   }
+
+  int button_state = -1;
   while (true){
+    bool state = button.digitalRead();
+    if (state != button_state){
+      button_state = state;
+      Serial.print("State changed to ");
+      Serial.println(state ? "on" : "off");
+    }
     // Is it bright outside?
     if (ldr.isBright()){
       // Only print this when actually switching state

@@ -1,7 +1,7 @@
 {
     "configuration": "cpu=atmega2560",
     "board": "arduino:avr:mega",
-    "port": "/dev/cu.usbmodem223301",
     "programmer": "arduino:avrispmkii",
+    "port": "/dev/ttyACM0",
     "sketch": "photo_resistor_analog.ino"
 }
