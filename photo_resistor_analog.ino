@@ -31,6 +31,8 @@ void setup() {
  * 3. Easier to read, don't you think?
  * 4. While not very significant, this is more performant, no needless stack pushing and popping
  */
+
+int effect_index = 0; // cannot use std::funcion, so I can't capture anything on the lambda
 void loop(){ 
   enum WasBright {
     YES,
@@ -47,14 +49,17 @@ void loop(){
       leds[i++] = new LED(pin);
     }
   }
+  const size_t effect_count = 3;
+  Effect** effects = reinterpret_cast<Effect**>(malloc(sizeof(Effect*)*effect_count));
+  effects[0] = new DimEffect(leds,LED_COUNT,12);
+  effects[1] = new DimEffect(leds,LED_COUNT,8);
+  effects[2] = new DimEffect(leds,LED_COUNT,4);
   button.buttonStateChanged = [](bool state){
     Serial.print("State changed to ");
     Serial.println(state ? "on" : "off");
+    if (state) ++effect_index;
   };
-  const size_t effect_count = 1;
-  Effect** effects = reinterpret_cast<Effect**>(malloc(sizeof(Effect*)*effect_count));
-  effects[0] = new DimEffect(leds,LED_COUNT);
-  int effect_index = 0;
+
   while (true){
     button.step();
     // Is it bright outside?
