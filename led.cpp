@@ -8,6 +8,8 @@ LED::LED(int pin):
   }
   
 void LED::set(int level){
+  Serial.print("Setting led to level ");
+  Serial.println(level);
   if (level != _level){
     _level = level;
     analogWrite(_level);

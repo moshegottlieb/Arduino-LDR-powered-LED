@@ -53,6 +53,7 @@ void loop(){
   };
   const size_t effect_count = 1;
   Effect** effects = reinterpret_cast<Effect**>(malloc(sizeof(Effect*)*effect_count));
+  effects[0] = new DimEffect(leds,LED_COUNT);
   int effect_index = 0;
   while (true){
     button.step();
