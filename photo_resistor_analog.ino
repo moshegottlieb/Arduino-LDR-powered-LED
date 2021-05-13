@@ -2,13 +2,14 @@
 #include "led.h"
 #include "ldr.h"
 #include "push_button.h"
+#include "dim_effect.h"
 /**
  * D3,D5 are PWM pins in the Nano, Uno and Mega 2560, so same code works for all three boards
  * Feel free to change for your board
 */
 const int LED_PINS[] = { 3,5 };
 const int BUTTON_PIN = 6;
-const size_t LED_COUNT = sizeof(LED_PINS) / sizeof(int);
+const int LED_COUNT = sizeof(LED_PINS) / sizeof(int);
 /*
  * We'll read the input from this pin
  */
@@ -38,22 +39,21 @@ void loop(){
   };
   LDR ldr(LDR_PIN,POT_PIN);
   PushButton button(BUTTON_PIN);
-  LED** leds = reinterpret_cast<LED**>(malloc(sizeof(LED*)*LED_COUNT+1));
-  LED** iled;
+  LED** leds = reinterpret_cast<LED**>(malloc(sizeof(LED*)*LED_COUNT));
   WasBright was_bright = UNINITIALIZED;
   { // scope for temp vars
     int i=0;
-    bool reverse = false;
     for (auto pin : LED_PINS){
-      leds[i++] = new LED(pin,reverse^=true);
+      leds[i++] = new LED(pin);
     }
-    leds[i] = nullptr;
   }
   button.buttonStateChanged = [](bool state){
     Serial.print("State changed to ");
     Serial.println(state ? "on" : "off");
   };
-  int button_state = -1;
+  const size_t effect_count = 1;
+  Effect** effects = reinterpret_cast<Effect**>(malloc(sizeof(Effect*)*effect_count));
+  int effect_index = 0;
   while (true){
     button.step();
     // Is it bright outside?
@@ -64,7 +64,7 @@ void loop(){
         Serial.println("Bright! turning lights off");
       }
       // Turn it off, there's light outside
-      iled = leds; while (*iled) (*iled++)->off();
+      for (int i=0;i<LED_COUNT;++i) leds[i]->set(0);
     } else { // Dark!
       // Only print this when actually switching state
       if (was_bright == YES){
@@ -72,7 +72,7 @@ void loop(){
         Serial.println("Bright! turning lights on");
       }
       // Cycle the LED to the next value
-      iled = leds; while (*iled) (*iled++)->step();
+      effects[effect_index % effect_count]->step();
     }
   }
   
