@@ -9,7 +9,7 @@ Wrapped it in a little box:
 ![3 euro smart home](https://github.com/moshegottlieb/Arduino-LDR-powered-LED/blob/main/box.jpg?raw=true)
 
 Let there be light!
-![LED string](https://github.com/moshegottlieb/Arduino-LDR-powered-LED/blob/main/light.jpg?raw=true)
+![LED string](https://github.com/moshegottlieb/Arduino-LDR-powered-LED/blob/main/leds.jpg?raw=true)
 
 
 Here's the diagram:
