@@ -7,14 +7,14 @@
  * D3,D5 are PWM pins in the Nano, Uno and Mega 2560, so same code works for all three boards
  * Feel free to change for your board
 */
-const int LED_PINS[] = { 3,5 };
-const int BUTTON_PIN = 6;
+const int LED_PINS[] = { 5,6 };
+const int BUTTON_PIN = 3;
 const int LED_COUNT = sizeof(LED_PINS) / sizeof(int);
 /*
  * We'll read the input from this pin
  */
 const int LDR_PIN = A0;
-const int POT_PIN = A1;
+const int POT_PIN = A5;
 
 /**
  * Initialize, no idea why arduino calls `setup()` and `loop()` and not just a single entry point
@@ -61,7 +61,7 @@ void loop(){
   };
 
   while (true){
-    button.step();
+    //button.step();
     // Is it bright outside?
     if (ldr.isBright()){
       // Only print this when actually switching state

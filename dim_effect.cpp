@@ -20,8 +20,6 @@ void DimEffect::step(LED& led,int index){
   // Split the resolution to seconds (/1000) and then, mod by 4, so we get nice 4 second intervals, in a predictable, time based manner (look mom! no state!)
   int k = 1000 * (_cycle / 4);
   int sec = (now / k) % 4;
-  Serial.println(sec);
-  
   switch (sec){
     case 0:
       level = (int)(((float)(now % k)) / (float)k * 255);

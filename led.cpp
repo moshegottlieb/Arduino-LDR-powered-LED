@@ -1,5 +1,6 @@
 #include "led.h"
 #include <Arduino.h>
+#include "print.h"
 
 LED::LED(int pin):
     OutputPin(pin),
