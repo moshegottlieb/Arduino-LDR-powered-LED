@@ -1,7 +1,4 @@
-#include "pin.h"
-#include "led.h"
-#include "ldr.h"
-#include "push_button.h"
+#include <ArduinoShark.h> // Get it from https://github.com/moshegottlieb/arduinoshark/
 #include "dim_effect.h"
 /**
  * D3,D5 are PWM pins in the Nano, Uno and Mega 2560, so same code works for all three boards
@@ -13,7 +10,6 @@ const int LED_COUNT = sizeof(LED_PINS) / sizeof(int);
 /*
  * We'll read the input from this pin
  */
-const int LDR_PIN = A0;
 const int POT_PIN = A5;
 
 /**
@@ -34,15 +30,8 @@ void setup() {
 
 int effect_index = 0; // cannot use std::funcion, so I can't capture anything on the lambda
 void loop(){ 
-  enum WasBright {
-    YES,
-    NO,
-    UNINITIALIZED
-  };
-  LDR ldr(LDR_PIN,POT_PIN);
   PushButton button(BUTTON_PIN);
   LED** leds = reinterpret_cast<LED**>(malloc(sizeof(LED*)*LED_COUNT));
-  WasBright was_bright = UNINITIALIZED;
   { // scope for temp vars
     int i=0;
     for (auto pin : LED_PINS){
@@ -60,26 +49,11 @@ void loop(){
     if (state) ++effect_index;
   };
 
+  Serial.println("Starting loop");
   while (true){
     //button.step();
-    // Is it bright outside?
-    if (ldr.isBright()){
-      // Only print this when actually switching state
-      if (was_bright != YES){
-        was_bright = YES;
-        Serial.println("Bright! turning lights off");
-      }
-      // Turn it off, there's light outside
-      for (int i=0;i<LED_COUNT;++i) leds[i]->set(0);
-    } else { // Dark!
-      // Only print this when actually switching state
-      if (was_bright == YES){
-        was_bright = NO;
-        Serial.println("Bright! turning lights on");
-      }
-      // Cycle the LED to the next value
-      effects[effect_index % effect_count]->step();
-    }
+    // Cycle the LED to the next value
+    effects[effect_index % effect_count]->step();
   }
   
 }
